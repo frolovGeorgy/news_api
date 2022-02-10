@@ -2,6 +2,7 @@ from django.contrib.auth.models import BaseUserManager
 
 
 class MyUserManager(BaseUserManager):
+
     def create_user(self, email, password, **extra_values):
         if not email:
             raise ValueError('Users must have an email address')

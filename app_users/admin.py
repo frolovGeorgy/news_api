@@ -1,6 +1,9 @@
 from django.contrib import admin
+from django.forms import ModelForm
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
-from app_users.models import Article, Author, User
+from app_users.models import Article, User
 
 
 @admin.register(User)
@@ -13,6 +16,15 @@ class ArticleAdmin(admin.ModelAdmin):
     list_display = ['title', 'text', 'author', 'creation_date', 'is_private']
 
 
-@admin.register(Author)
-class AuthorAdmin(admin.ModelAdmin):
-    list_display = ['name']
+class UserCreateForm(ModelForm):
+    class Meta:
+        model = User
+        fields = ['email', 'password']
+
+    def clean(self):
+        password = self.cleaned_data.get('password')
+        if password:
+            try:
+                validate_password(password, self.instance)
+            except ValidationError as error:
+                self.add_error('password', error)
