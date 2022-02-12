@@ -1,12 +1,9 @@
-import logging
-
+from django.contrib.auth import password_validation
 from django.contrib.auth.models import Group
+from django.core import exceptions
 from rest_framework import serializers
 
 from app_users.models import Article, User
-
-logger = logging.getLogger()
-logger.setLevel('INFO')
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -14,14 +11,25 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ('email', 'password')
 
+    def validate(self, data):
+        password = data.get('password')
+
+        try:
+            password_validation.validate_password(password=password, user=User)
+
+        except exceptions.ValidationError as e:
+            raise serializers.ValidationError(e)
+
+        return super(UserSerializer, self).validate(data)
+
     def create(self, validated_data):
         groups = []
 
-        if self.context.pop('author', False):
+        if self.context.get('author', False):
             groups.append(Group.objects.get(name='authors'))
             groups.append(Group.objects.get(name='subscribers'))
 
-        elif self.context.pop('subscriber', False):
+        elif self.context.get('subscriber', False):
             groups.append(Group.objects.get(name='subscribers'))
 
         user = User.objects.create_user(**validated_data)
@@ -34,7 +42,7 @@ class ArticleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Article
-        fields = ['title', 'text', 'author', 'creation_date', 'is_private']
+        fields = ['id', 'title', 'text', 'author', 'creation_date', 'is_private']
 
     def create(self, validated_data):
         validated_data['author'] = self.context['author']

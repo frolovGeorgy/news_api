@@ -1,5 +1,3 @@
-import logging
-
 from django.contrib.auth import logout, authenticate, login
 from rest_framework import status
 from rest_framework.generics import GenericAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
@@ -10,26 +8,6 @@ from rest_framework.views import APIView
 from app_users.models import Article, User
 from app_users.permissions import AuthorPermission, UpdateArticlePermission, DeleteArticlePermission
 from app_users.serializers import ArticleSerializer, UserSerializer
-
-logger = logging.getLogger()
-logger.setLevel('INFO')
-
-
-# TODO удалить, это для проверки
-class ExampleView(APIView):
-    # authentication_classes = [BasicAuthentication]
-    # permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        content = {
-            'user': str(request.user),
-            'auth': str(request.auth),
-            'id': str(request.user.id),
-            'is_authenticated': str(request.user.is_authenticated),
-            'groups': str(request.user.groups.all()),
-            'permissions': str(request.user.get_user_permissions())
-        }
-        return Response(content)
 
 
 class LoginView(APIView):
@@ -92,6 +70,7 @@ class ArticlesListView(ListModelMixin, CreateModelMixin, GenericAPIView):
     def get_queryset(self):
         if self.request.user.has_perm('app_users.can_view_privates'):
             return Article.objects.all()
+
         return Article.objects.filter(is_private=False)
 
 
@@ -130,6 +109,7 @@ class UpdateArticleView(UpdateAPIView):
         if serializer.is_valid():
             serializer.save()
             return Response(status=status.HTTP_200_OK)
+
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -143,4 +123,3 @@ class DeleteArticleView(DestroyAPIView):
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
-
