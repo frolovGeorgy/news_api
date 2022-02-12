@@ -10,28 +10,31 @@ logger.setLevel('INFO')
 
 
 class UserSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = User
         fields = ('email', 'password')
 
-    def create(self, kwargs):
+    def create(self, validated_data):
         groups = []
 
-        if self.context.pop('author', False) is True:
+        if self.context.pop('author', False):
             groups.append(Group.objects.get(name='authors'))
 
-        elif self.context.pop('subscriber', False) is True:
+        elif self.context.pop('subscriber', False):
             groups.append(Group.objects.get(name='subscribers'))
 
-        user = User.objects.create_user(**kwargs)
+        user = User.objects.create_user(**validated_data)
         user.groups.set(groups)
         return user
 
 
-class ArticleSerializer(serializers.HyperlinkedModelSerializer):
+class ArticleSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField()
 
     class Meta:
         model = Article
         fields = ['title', 'text', 'author', 'creation_date', 'is_private']
+
+    def create(self, validated_data):
+        validated_data['author'] = self.context['author']
+        return Article.objects.create(**validated_data)

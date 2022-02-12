@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from app_users.models import Article, User
+from app_users.permissions import AuthorPermission
 from app_users.serializers import ArticleSerializer, UserSerializer
 
 logger = logging.getLogger()
@@ -49,7 +50,7 @@ class LoginView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
 
-class RegistrationAPIView(CreateAPIView):
+class RegistrationView(CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
@@ -82,7 +83,7 @@ class LogoutView(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
-class ArticlesList(ListModelMixin, CreateModelMixin, GenericAPIView):
+class ArticlesListView(ListModelMixin, CreateModelMixin, GenericAPIView):
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
 
@@ -93,3 +94,24 @@ class ArticlesList(ListModelMixin, CreateModelMixin, GenericAPIView):
         if self.request.user.has_perm('app_users.can_view_privates'):
             return Article.objects.all()
         return Article.objects.filter(is_private=False)
+
+
+class AddArticleView(CreateAPIView):
+    permission_classes = [AuthorPermission]
+    queryset = Article.objects.all()
+    serializer_class = ArticleSerializer
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        context = {'author': request.user}
+        serializer = self.get_serializer(
+            data=data,
+            context=context
+        )
+
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            return Response(status=status.HTTP_201_CREATED)
+
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
